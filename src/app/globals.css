@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    
+    /* Deep green as primary */
+    --primary: 147 75% 25%;
+    --primary-foreground: 210 40% 98%;
+    
+    /* Lighter green for info */
+    --info: 142 76% 36%;
+    --info-foreground: 210 40% 98%;
+    
+    /* Success stays green but slightly different shade */
+    --success: 145 80% 30%;
+    --success-foreground: 210 40% 98%;
+    
+    /* Warning stays orange */
+    --warning: 38 92% 50%;
+    --warning-foreground: 210 40% 98%;
+    
+    /* Destructive stays red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    
+    /* Adjusted secondary to complement green */
+    --secondary: 150 20% 96%;
+    --secondary-foreground: 147 75% 25%;
+    
+    --muted: 150 20% 96%;
+    --muted-foreground: 147 30% 30%;
+    --accent: 150 40% 96%;
+    --accent-foreground: 147 75% 25%;
+    --border: 147 30% 90%;
+    --input: 147 30% 90%;
+    --ring: 147 75% 25%;
+    --radius: 0.5rem;
+    
+    /* Chart colors adjusted to green theme */
+    --chart-1: 147 75% 25%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 155 65% 30%;
+    --chart-4: 165 55% 35%;
+    --chart-5: 170 45% 40%;
+  }
+
+  .dark {
+    --background: 147 30% 10%;
+    --foreground: 210 40% 98%;
+    --card: 147 30% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 147 30% 10%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Deep green in dark mode */
+    --primary: 147 75% 40%;
+    --primary-foreground: 147 30% 10%;
+    
+    /* Adjusted info for dark mode */
+    --info: 142 76% 45%;
+    --info-foreground: 210 40% 98%;
+    
+    /* Success in dark mode */
+    --success: 145 80% 35%;
+    --success-foreground: 210 40% 98%;
+    
+    /* Warning stays orange */
+    --warning: 38 92% 50%;
+    --warning-foreground: 210 40% 98%;
+    
+    /* Destructive stays red */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --secondary: 147 30% 15%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 147 30% 15%;
+    --muted-foreground: 147 20% 65%;
+    --accent: 147 30% 15%;
+    --accent-foreground: 210 40% 98%;
+    --border: 147 30% 20%;
+    --input: 147 30% 20%;
+    --ring: 147 75% 40%;
+    
+    /* Chart colors for dark mode */
+    --chart-1: 147 75% 40%;
+    --chart-2: 142 76% 45%;
+    --chart-3: 155 65% 50%;
+    --chart-4: 165 55% 55%;
+    --chart-5: 170 45% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 200% auto;
+  animation: gradient 8s linear infinite;
+}
+
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-background-color: hsl(var(--primary) / 0.1);
+  margin: 0;
+}
