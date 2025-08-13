@@ -51,8 +51,8 @@ export default function DownloadLogsPage() {
   
   // Filters
   const [dateFilter, setDateFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [verifiedFilter, setVerifiedFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [verifiedFilter, setVerifiedFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchDownloadStats = async () => {
@@ -62,8 +62,8 @@ export default function DownloadLogsPage() {
     try {
       const queryParams = new URLSearchParams();
       if (dateFilter) queryParams.append('startDate', dateFilter);
-      if (typeFilter) queryParams.append('documentType', typeFilter);
-      if (verifiedFilter) queryParams.append('verified', verifiedFilter);
+      if (typeFilter && typeFilter !== 'all') queryParams.append('documentType', typeFilter);
+      if (verifiedFilter && verifiedFilter !== 'all') queryParams.append('verified', verifiedFilter);
 
       const response = await fetch(`/api/public-documents/stats/downloads?${queryParams}`, {
         headers: {
@@ -227,7 +227,7 @@ export default function DownloadLogsPage() {
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="LOAN_APPLICATION">Loan Application</SelectItem>
                   <SelectItem value="CONTRACT">Contract</SelectItem>
                   <SelectItem value="COLLATERAL">Collateral</SelectItem>
@@ -243,7 +243,7 @@ export default function DownloadLogsPage() {
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   <SelectItem value="true">Verified</SelectItem>
                   <SelectItem value="false">Unverified</SelectItem>
                 </SelectContent>

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+import DocumentForm from './components/DocumentForm';
 import {
   Plus,
   Download,
@@ -28,6 +29,7 @@ interface PublicDocument {
   id: number;
   title: string;
   description: string;
+  detailedDescription?: string;
   originalName: string;
   fileName: string;
   fileSize: number;
@@ -39,6 +41,14 @@ interface PublicDocument {
   isPublic: boolean;
   isActive: boolean;
   downloadCount: number;
+  sortOrder: number;
+  publishDate: string;
+  expiryDate: string;
+  titleSwahili?: string;
+  descriptionSwahili?: string;
+  detailedDescriptionSwahili?: string;
+  note?: string;
+  noteSwahili?: string;
   createdAt: string;
   updatedAt: string;
   uploader: {
@@ -50,36 +60,46 @@ interface PublicDocument {
 interface DocumentFormData {
   title: string;
   description: string;
+  detailedDescription?: string;
   category: string;
   language: string;
   documentType: string;
   tags: string;
   isPublic: boolean;
   isActive: boolean;
+  sortOrder: number;
+  publishDate: string;
+  expiryDate: string;
+  titleSwahili?: string;
+  descriptionSwahili?: string;
+  detailedDescriptionSwahili?: string;
+  note?: string;
+  noteSwahili?: string;
 }
 
 const CATEGORIES = [
-  { value: 'forms', label: 'Forms' },
-  { value: 'policies', label: 'Policies' },
-  { value: 'procedures', label: 'Procedures' },
-  { value: 'announcements', label: 'Announcements' },
-  { value: 'reports', label: 'Reports' },
-  { value: 'guidelines', label: 'Guidelines' },
-  { value: 'other', label: 'Other' }
+  { value: 'MEMBERSHIP', label: 'Membership Forms' },
+  { value: 'LOANS', label: 'Loan Applications' },
+  { value: 'SAVINGS', label: 'Savings & Deposits' },
+  { value: 'INSURANCE', label: 'Insurance Forms' },
+  { value: 'GENERAL', label: 'General Documents' },
+  { value: 'FORMS', label: 'Application Forms' },
+  { value: 'POLICIES', label: 'Policies & Guidelines' }
 ];
 
 const LANGUAGES = [
   { value: 'en', label: 'English' },
-  { value: 'fr', label: 'French' },
-  { value: 'both', label: 'Bilingual' }
+  { value: 'sw', label: 'Swahili' },
+  { value: 'both', label: 'Both Languages' }
 ];
 
 const DOCUMENT_TYPES = [
-  { value: 'pdf', label: 'PDF Document' },
-  { value: 'word', label: 'Word Document' },
-  { value: 'excel', label: 'Excel Spreadsheet' },
-  { value: 'image', label: 'Image File' },
-  { value: 'other', label: 'Other' }
+  { value: 'APPLICATION_FORM', label: 'Application Form' },
+  { value: 'POLICY_DOCUMENT', label: 'Policy Document' },
+  { value: 'GUIDE', label: 'Guide/Manual' },
+  { value: 'BROCHURE', label: 'Brochure' },
+  { value: 'TERMS_CONDITIONS', label: 'Terms & Conditions' },
+  { value: 'OTHER', label: 'Other' }
 ];
 
 export default function DocumentsPage() {
@@ -97,12 +117,21 @@ export default function DocumentsPage() {
   const [formData, setFormData] = useState<DocumentFormData>({
     title: '',
     description: '',
-    category: 'forms',
+    detailedDescription: '',
+    category: 'MEMBERSHIP',
     language: 'en',
-    documentType: 'pdf',
+    documentType: 'APPLICATION_FORM',
     tags: '',
     isPublic: true,
-    isActive: true
+    isActive: true,
+    sortOrder: 0,
+    publishDate: new Date().toISOString().split('T')[0],
+    expiryDate: '',
+    titleSwahili: '',
+    descriptionSwahili: '',
+    detailedDescriptionSwahili: '',
+    note: '',
+    noteSwahili: ''
   });
 
   useEffect(() => {
@@ -335,12 +364,21 @@ export default function DocumentsPage() {
     setFormData({
       title: document.title,
       description: document.description,
+      detailedDescription: document.detailedDescription || '',
       category: document.category,
       language: document.language,
       documentType: document.documentType,
       tags: document.tags,
       isPublic: document.isPublic,
-      isActive: document.isActive
+      isActive: document.isActive,
+      sortOrder: document.sortOrder || 0,
+      publishDate: document.publishDate || new Date().toISOString().split('T')[0],
+      expiryDate: document.expiryDate || '',
+      titleSwahili: document.titleSwahili || '',
+      descriptionSwahili: document.descriptionSwahili || '',
+      detailedDescriptionSwahili: document.detailedDescriptionSwahili || '',
+      note: document.note || '',
+      noteSwahili: document.noteSwahili || ''
     });
     setIsEditDialogOpen(true);
   };
@@ -349,12 +387,21 @@ export default function DocumentsPage() {
     setFormData({
       title: '',
       description: '',
-      category: 'forms',
+      detailedDescription: '',
+      category: 'MEMBERSHIP',
       language: 'en',
-      documentType: 'pdf',
+      documentType: 'APPLICATION_FORM',
       tags: '',
       isPublic: true,
-      isActive: true
+      isActive: true,
+      sortOrder: 0,
+      publishDate: new Date().toISOString().split('T')[0],
+      expiryDate: '',
+      titleSwahili: '',
+      descriptionSwahili: '',
+      detailedDescriptionSwahili: '',
+      note: '',
+      noteSwahili: ''
     });
     setUploadFile(null);
   };
@@ -412,99 +459,22 @@ export default function DocumentsPage() {
                 Upload Document
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Upload New Document</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleUpload} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">File</label>
-                  <Input
-                    type="file"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Title</label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description</label>
-                  <Input
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Category</label>
-                    <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.map(category => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Language</label>
-                    <Select value={formData.language} onValueChange={(value) => setFormData({ ...formData, language: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LANGUAGES.map(language => (
-                          <SelectItem key={language.value} value={language.value}>
-                            {language.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Tags</label>
-                  <Input
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                    placeholder="Comma-separated tags"
-                  />
-                </div>
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.isPublic}
-                      onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-                    />
-                    Public
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    />
-                    Active
-                  </label>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => { setIsUploadDialogOpen(false); resetForm(); }}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Upload</Button>
-                </div>
-              </form>
+              <DocumentForm
+                formData={formData}
+                setFormData={setFormData}
+                uploadFile={uploadFile}
+                setUploadFile={setUploadFile}
+                onSubmit={() => handleUpload(new Event('submit') as any)}
+                onCancel={() => {
+                  setIsUploadDialogOpen(false);
+                  resetForm();
+                }}
+                isEditing={false}
+              />
             </DialogContent>
           </Dialog>
         </div>
@@ -662,91 +632,23 @@ export default function DocumentsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Document</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEdit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Title</label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Input
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map(category => (
-                      <SelectItem key={category.value} value={category.value}>
-                        {category.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Language</label>
-                <Select value={formData.language} onValueChange={(value) => setFormData({ ...formData, language: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map(language => (
-                      <SelectItem key={language.value} value={language.value}>
-                        {language.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tags</label>
-              <Input
-                value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                placeholder="Comma-separated tags"
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.isPublic}
-                  onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-                />
-                Public
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                />
-                Active
-              </label>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => { setIsEditDialogOpen(false); setEditingDocument(null); resetForm(); }}>
-                Cancel
-              </Button>
-              <Button type="submit">Update</Button>
-            </div>
-          </form>
+          <DocumentForm
+            formData={formData}
+            setFormData={setFormData}
+            uploadFile={null}
+            setUploadFile={() => {}}
+            onSubmit={() => handleEdit(new Event('submit') as any)}
+            onCancel={() => {
+              setIsEditDialogOpen(false);
+              setEditingDocument(null);
+              resetForm();
+            }}
+            isEditing={true}
+          />
         </DialogContent>
       </Dialog>
       <Toaster />
