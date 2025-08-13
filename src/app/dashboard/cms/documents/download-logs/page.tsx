@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import apiClient from '@/lib/axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,19 +66,9 @@ export default function DownloadLogsPage() {
       if (typeFilter && typeFilter !== 'all') queryParams.append('documentType', typeFilter);
       if (verifiedFilter && verifiedFilter !== 'all') queryParams.append('verified', verifiedFilter);
 
-      const response = await fetch(`/api/public-documents/stats/downloads?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch download logs');
-      }
-
-      const data = await response.json();
-      setStats(data.stats);
-      setLogs(data.stats.recentDownloads || []);
+      const response = await apiClient.get(`/public-documents/stats/downloads?${queryParams}`);
+      setStats(response.data.stats);
+      setLogs(response.data.stats.recentDownloads || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

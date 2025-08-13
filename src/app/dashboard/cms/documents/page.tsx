@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import apiClient from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -144,23 +145,18 @@ export default function DocumentsPage() {
 
   const fetchDocuments = async () => {
     try {
-      const response = await fetch('/api/public-documents', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await apiClient.get('/public-documents/cms');
+      console.log('API Response:', response.data);
       
-      if (response.ok) {
-        const data = await response.json();
-        setDocuments(data);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch documents",
-          variant: "destructive"
-        });
-      }
+      // Ensure the response data is an array
+      const documentsData = Array.isArray(response.data) ? response.data : 
+                           (response.data?.documents && Array.isArray(response.data.documents)) ? response.data.documents : 
+                           [];
+      
+      setDocuments(documentsData);
     } catch (error) {
+      console.error('Fetch documents error:', error);
+      setDocuments([]); // Ensure we set an empty array on error
       toast({
         title: "Error",
         description: "Failed to fetch documents",
@@ -172,6 +168,12 @@ export default function DocumentsPage() {
   };
 
   const filterDocuments = () => {
+    // Ensure documents is an array before filtering
+    if (!Array.isArray(documents)) {
+      setFilteredDocuments([]);
+      return;
+    }
+
     let filtered = documents;
 
     if (searchTerm) {
@@ -217,34 +219,23 @@ export default function DocumentsPage() {
     formDataToSend.append('isActive', formData.isActive.toString());
 
     try {
-      const response = await fetch('/api/public-documents', {
-        method: 'POST',
+      await apiClient.post('/public-documents/upload', formDataToSend, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formDataToSend
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Document uploaded successfully"
-        });
-        setIsUploadDialogOpen(false);
-        resetForm();
-        fetchDocuments();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to upload document",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Document uploaded successfully"
+      });
+      setIsUploadDialogOpen(false);
+      resetForm();
+      fetchDocuments();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to upload document",
+        description: error.response?.data?.message || "Failed to upload document",
         variant: "destructive"
       });
     }
@@ -256,36 +247,20 @@ export default function DocumentsPage() {
     if (!editingDocument) return;
 
     try {
-      const response = await fetch(`/api/public-documents/${editingDocument.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData)
-      });
+      await apiClient.put(`/public-documents/${editingDocument.id}`, formData);
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Document updated successfully"
-        });
-        setIsEditDialogOpen(false);
-        setEditingDocument(null);
-        resetForm();
-        fetchDocuments();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to update document",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Document updated successfully"
+      });
+      setIsEditDialogOpen(false);
+      setEditingDocument(null);
+      resetForm();
+      fetchDocuments();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update document",
+        description: error.response?.data?.message || "Failed to update document",
         variant: "destructive"
       });
     }
@@ -293,30 +268,20 @@ export default function DocumentsPage() {
 
   const handleDownload = async (documentId: number, fileName: string) => {
     try {
-      const response = await fetch(`/api/public-documents/${documentId}/download`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const response = await apiClient.get(`/public-documents/download/${documentId}`, {
+        responseType: 'blob'
       });
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to download document",
-          variant: "destructive"
-        });
-      }
+      const blob = response.data;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       toast({
         title: "Error",
@@ -330,26 +295,13 @@ export default function DocumentsPage() {
     if (!confirm('Are you sure you want to delete this document?')) return;
 
     try {
-      const response = await fetch(`/api/public-documents/${documentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await apiClient.delete(`/public-documents/${documentId}`);
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Document deleted successfully"
-        });
-        fetchDocuments();
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to delete document",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Document deleted successfully"
+      });
+      fetchDocuments();
     } catch (error) {
       toast({
         title: "Error",
@@ -527,7 +479,7 @@ export default function DocumentsPage() {
 
       {/* Documents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredDocuments.map((document) => (
+        {Array.isArray(filteredDocuments) && filteredDocuments.map((document) => (
           <Card key={document.id} className="h-full">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -617,7 +569,7 @@ export default function DocumentsPage() {
         ))}
       </div>
 
-      {filteredDocuments.length === 0 && (
+      {(!Array.isArray(filteredDocuments) || filteredDocuments.length === 0) && (
         <div className="text-center py-12">
           <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">No documents found</h3>
