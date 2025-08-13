@@ -208,7 +208,8 @@ export default function DocumentsPage() {
     }
 
     const formDataToSend = new FormData();
-    formDataToSend.append('file', uploadFile);
+  // Field name must match backend multer config: publicDocumentUpload.single('document')
+  formDataToSend.append('document', uploadFile);
     formDataToSend.append('title', formData.title);
     formDataToSend.append('description', formData.description);
     formDataToSend.append('category', formData.category);
