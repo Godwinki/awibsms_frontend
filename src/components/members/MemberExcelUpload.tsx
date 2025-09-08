@@ -20,7 +20,6 @@ import { TableIcon, FileSpreadsheet, Upload, Download, AlertCircle } from 'lucid
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
-import { AccountTypeService, AccountType } from '@/lib/services/account-type.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -54,26 +53,12 @@ const MemberExcelUpload = () => {
   const [showResults, setShowResults] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   
-  const [accountTypes, setAccountTypes] = useState<AccountType[]>([]);
-  const [accountTypeId, setAccountTypeId] = useState<string>('');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Fetch account types on component mount
+  // Set current branch as default selection
   useEffect(() => {
-    const loadAccountTypes = async () => {
-      try {
-        const response = await AccountTypeService.getAll();
-        setAccountTypes(response.data);
-      } catch (error) {
-        console.error('Error loading account types:', error);
-      }
-    };
-    
-    loadAccountTypes();
-    
-    // Set current branch as default selection
     if (currentBranch) {
       setSelectedBranchId(currentBranch.id);
     }
@@ -166,7 +151,6 @@ const MemberExcelUpload = () => {
     try {
       const response = await MemberService.uploadExcel(
         selectedFile, 
-        accountTypeId ? parseInt(accountTypeId) : undefined,
         selectedBranchId
       );
       
@@ -268,32 +252,6 @@ const MemberExcelUpload = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {accountTypes && accountTypes.length > 0 && (
-                    <div className="space-y-2">
-                      <Label htmlFor="accountType" className="flex items-center gap-2">
-                        Account Type <span className="text-xs text-muted-foreground">(Optional - will use default)</span>
-                      </Label>
-                      <Select 
-                        value={accountTypeId} 
-                        onValueChange={setAccountTypeId}
-                        disabled={isUploading}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select account type (optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            {accountTypes.map(type => (
-                              <SelectItem key={type.id} value={type.id.toString()}>
-                                {type.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  
                   <div className="space-y-2">
                     <Label htmlFor="branch" className="flex items-center gap-2">
                       Branch <span className="text-xs text-destructive">*</span>

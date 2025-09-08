@@ -103,12 +103,9 @@ export const MemberService = {
   },
   
   // Upload Excel file with member data
-  uploadExcel: (file: File, accountTypeId?: number, branchId?: string) => {
+  uploadExcel: (file: File, branchId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
-    if (accountTypeId) {
-      formData.append('accountTypeId', accountTypeId.toString());
-    }
     if (branchId) {
       formData.append('branchId', branchId);
     }
