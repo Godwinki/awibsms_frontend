@@ -112,8 +112,8 @@ class OnboardingService {
    */
   static async getSystemStatus(): Promise<SystemStatus> {
     try {
-      console.log('🔍 Frontend: Making API call to /system/onboarding/status');
-      const response = await axiosInstance.get('/system/onboarding/status');
+      console.log('🔍 Frontend: Making API call to /v1/system/onboarding/status');
+      const response = await axiosInstance.get('/v1/system/onboarding/status');
       console.log('🔍 Frontend: Raw response:', response);
       console.log('🔍 Frontend: Response data:', response.data);
       console.log('🔍 Frontend: Extracted data:', response.data.data);
@@ -129,7 +129,7 @@ class OnboardingService {
    */
   static async startOnboarding(data: OnboardingData): Promise<OnboardingResponse> {
     try {
-      const response = await axiosInstance.post('/system/onboarding/start', data);
+      const response = await axiosInstance.post('/v1/system/onboarding/start', data);
       return response.data;
     } catch (error: any) {
       console.error('Onboarding failed:', error);
@@ -148,7 +148,7 @@ class OnboardingService {
    */
   static async validateStep(step: string, data: any): Promise<ValidationResponse> {
     try {
-      const response = await axiosInstance.post('/system/onboarding/validate', {
+      const response = await axiosInstance.post('/v1/system/onboarding/validate', {
         step,
         data
       });
@@ -174,7 +174,7 @@ class OnboardingService {
    */
   static async checkCompanyCodeAvailability(companyCode: string): Promise<AvailabilityResponse> {
     try {
-      const response = await axiosInstance.post('/system/onboarding/check-company-code', {
+      const response = await axiosInstance.post('/v1/system/onboarding/check-company-code', {
         companyCode
       });
       return response.data;
@@ -198,7 +198,7 @@ class OnboardingService {
    */
   static async checkBranchCodeAvailability(branchCode: string): Promise<AvailabilityResponse> {
     try {
-      const response = await axiosInstance.post('/system/onboarding/check-branch-code', {
+      const response = await axiosInstance.post('/v1/system/onboarding/check-branch-code', {
         branchCode
       });
       return response.data;
@@ -222,7 +222,7 @@ class OnboardingService {
    */
   static async resetSystem(confirmationCode: string): Promise<any> {
     try {
-      const response = await axiosInstance.post('/system/onboarding/reset', {
+      const response = await axiosInstance.post('/v1/system/onboarding/reset', {
         confirmationCode
       });
       return response.data;
