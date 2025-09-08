@@ -54,7 +54,7 @@ export const authService = {
       }
       
       // Use the axiosInstance instead of direct axios to ensure consistency
-      const response = await axiosInstance.post('users/login', loginData);
+      const response = await axiosInstance.post('/v1/users/login', loginData);
       console.log('AuthService: Login response:', response.data);
       
       if (response.data.status === 'requires_2fa') {
@@ -83,7 +83,7 @@ export const authService = {
   async requestOTP(userId: string): Promise<OTPRequestResponse> {
     try {
       console.log('AuthService: Requesting OTP for user:', userId);
-      const response = await axiosInstance.post('auth/2fa/request-otp', { userId });
+      const response = await axiosInstance.post('/v1/auth/2fa/request-otp', { userId });
       console.log('AuthService: OTP request response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -95,7 +95,7 @@ export const authService = {
   async verifyOTP(userId: string, otpCode: string): Promise<OTPVerifyResponse> {
     try {
       console.log('AuthService: Verifying OTP for user:', userId);
-      const response = await axiosInstance.post('auth/2fa/verify-otp', {
+      const response = await axiosInstance.post('/v1/auth/2fa/verify-otp', {
         userId,
         otp: otpCode  // Backend expects 'otp', not 'otpCode'
       });
@@ -125,7 +125,7 @@ export const authService = {
       const token = this.getToken();
       if (token) {
         try {
-          await axiosInstance.post('auth/logout');
+          await axiosInstance.post('/v1/auth/logout');
         } catch (error) {
           console.warn('AuthService: Logout endpoint failed, continuing with local cleanup');
         }
@@ -161,7 +161,7 @@ export const authService = {
   async changePassword(currentPassword: string, newPassword: string) {
     console.log('Sending change password request...');
     try {
-      const response = await axiosInstance.post('auth/change-password', {
+      const response = await axiosInstance.post('/v1/auth/change-password', {
         currentPassword,
         newPassword
       });
@@ -176,7 +176,7 @@ export const authService = {
   // Get branches available for login (no auth required)
   async getLoginBranches(): Promise<any[]> {
     try {
-      const response = await axiosInstance.get('/branches/public');
+      const response = await axiosInstance.get('/v1/branches/public');
       return response.data.data || response.data || [];
     } catch (error) {
       console.error('Failed to get login branches:', error);
