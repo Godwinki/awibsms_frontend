@@ -35,27 +35,27 @@ class LeaveService {
     status?: string
     userId?: string
   }): Promise<Leave[]> {
-    const response = await axiosInstance.get('/leaves', { params: filters })
+    const response = await axiosInstance.get('/leave', { params: filters })
     return response.data.data
   }
 
   async getLeaveRequestById(id: string): Promise<Leave> {
-    const response = await axiosInstance.get(`/leaves/${id}`)
+    const response = await axiosInstance.get(`/leave/${id}`)
     return response.data.data
   }
 
   async createLeaveRequest(data: CreateLeaveRequest): Promise<Leave> {
-    const response = await axiosInstance.post('/leaves', data)
+    const response = await axiosInstance.post('/leave', data)
     return response.data.data
   }
 
   async approveLeaveRequest(id: string, notes?: string): Promise<Leave> {
-    const response = await axiosInstance.post(`/leaves/${id}/approve`, { notes })
+    const response = await axiosInstance.post(`/leave/${id}/approve`, { notes })
     return response.data.data
   }
 
   async rejectLeaveRequest(id: string, reason?: string): Promise<Leave> {
-    const response = await axiosInstance.post(`/leaves/${id}/reject`, { reason })
+    const response = await axiosInstance.post(`/leave/${id}/reject`, { reason })
     return response.data.data
   }
 }

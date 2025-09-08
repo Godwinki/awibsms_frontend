@@ -115,7 +115,7 @@ class DocumentServiceClass {
     language?: string;
     active?: boolean;
   }): Promise<PublicDocument[]> {
-    const response = await axiosInstance.get('/public-documents/public', { 
+    const response = await axiosInstance.get('/content/public-documents/public', { 
       params: filters 
     });
     return response.data.documents;
@@ -125,7 +125,7 @@ class DocumentServiceClass {
    * Get all documents for CMS management (requires auth)
    */
   async getAllDocuments(filters?: DocumentFilters): Promise<PaginatedDocumentsResponse> {
-    const response = await axiosInstance.get('/public-documents/cms', { 
+    const response = await axiosInstance.get('/content/public-documents/cms', { 
       params: filters 
     });
     return {
@@ -151,7 +151,7 @@ class DocumentServiceClass {
       }
     });
 
-    const response = await axiosInstance.post('/public-documents/upload', formData, {
+    const response = await axiosInstance.post('/content/public-documents/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -166,7 +166,7 @@ class DocumentServiceClass {
     id: number,
     data: UpdateDocumentRequest
   ): Promise<PublicDocument> {
-    const response = await axiosInstance.put(`/public-documents/${id}`, data);
+    const response = await axiosInstance.put(`/content/public-documents/${id}`, data);
     return response.data.document;
   }
 
@@ -174,14 +174,14 @@ class DocumentServiceClass {
    * Delete a document (requires auth)
    */
   async deleteDocument(id: number): Promise<void> {
-    await axiosInstance.delete(`/public-documents/${id}`);
+    await axiosInstance.delete(`/content/public-documents/${id}`);
   }
 
   /**
    * Download a document (public endpoint - no auth required)
    */
   async downloadDocument(id: number): Promise<Blob> {
-    const response = await axiosInstance.get(`/public-documents/download/${id}`, {
+    const response = await axiosInstance.get(`/content/public-documents/download/${id}`, {
       responseType: 'blob'
     });
     return response.data;
@@ -191,14 +191,14 @@ class DocumentServiceClass {
    * Get document download URL (for direct download links)
    */
   getDocumentDownloadUrl(id: number): string {
-    return `public-documents/download/${id}`;
+    return `/content/public-documents/download/${id}`;
   }
 
   /**
    * Get available document categories
    */
   async getCategories(): Promise<DocumentCategory[]> {
-    const response = await axiosInstance.get('/public-documents/categories');
+    const response = await axiosInstance.get('/content/public-documents/categories');
     return response.data.categories;
   }
 
@@ -206,7 +206,7 @@ class DocumentServiceClass {
    * Get available document types
    */
   async getDocumentTypes(): Promise<DocumentType[]> {
-    const response = await axiosInstance.get('/public-documents/document-types');
+    const response = await axiosInstance.get('/content/public-documents/document-types');
     return response.data.documentTypes;
   }
 

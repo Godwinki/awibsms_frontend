@@ -19,7 +19,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Members</p>
-              <h2 className="text-2xl font-bold">2,345</h2>
+              <h2 className="text-2xl font-bold">1,345</h2>
               <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
                 <ArrowUp className="h-4 w-4" />
                 12% increase
@@ -51,7 +51,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Monthly Revenue</p>
-              <h2 className="text-2xl font-bold">$34,567</h2>
+              <h2 className="text-2xl font-bold">TSH 34,567,000</h2>
               <p className="text-sm text-red-600 flex items-center gap-1 mt-1">
                 <ArrowDown className="h-4 w-4" />
                 3% decrease
@@ -94,7 +94,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-medium">New Member Registration</p>
-                <p className="text-sm text-muted-foreground">John Doe completed registration</p>
+                <p className="text-sm text-muted-foreground">Magdalena Bwanga completed registration</p>
               </div>
               <div className="ml-auto text-sm text-muted-foreground">
                 2 hours ago

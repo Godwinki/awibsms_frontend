@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
+import SystemCheck from "@/components/system/SystemCheck";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,11 +28,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={inter.className}>
       <head />
       <body>
-        <AuthProvider>
-          <ThemeProvider defaultTheme="system">
-            {children}
-          </ThemeProvider>
-        </AuthProvider>
+        <SystemCheck>
+          <AuthProvider>
+            <AuthGuard>
+              <ThemeProvider defaultTheme="light">
+                {children}
+              </ThemeProvider>
+            </AuthGuard>
+          </AuthProvider>
+        </SystemCheck>
         {/* Include both toast systems to ensure compatibility with all components */}
         <ShadcnToaster />
         <SonnerToaster position="top-right" closeButton richColors />

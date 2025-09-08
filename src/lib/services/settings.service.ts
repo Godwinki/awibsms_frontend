@@ -8,14 +8,14 @@ export interface Setting<T = any> {
 
 export class SettingsService {
   static async getAll(section?: string) {
-    const url = section ? `/settings?section=${encodeURIComponent(section)}` : "/settings";
+    const url = section ? `/system/settings?section=${encodeURIComponent(section)}` : "/system/settings";
     const res = await axiosInstance.get(url);
     return res.data.settings as Setting[];
   }
 
   static async get<T = any>(key: string, section?: string): Promise<Setting<T> | null> {
     try {
-      const url = section ? `/settings/${key}?section=${encodeURIComponent(section)}` : `/settings/${key}`;
+      const url = section ? `/system/settings/${key}?section=${encodeURIComponent(section)}` : `/system/settings/${key}`;
       const res = await axiosInstance.get(url);
       return res.data.setting as Setting<T>;
     } catch (err: any) {
@@ -25,12 +25,12 @@ export class SettingsService {
   }
 
   static async upsert<T = any>(key: string, value: T, description?: string) {
-    const res = await axiosInstance.put(`/settings/${key}`, { value, description });
+    const res = await axiosInstance.put(`/system/settings/${key}`, { value, description });
     return res.data.setting as Setting<T>;
   }
 
   static async delete(key: string) {
-    await axiosInstance.delete(`/settings/${key}`);
+    await axiosInstance.delete(`/system/settings/${key}`);
     return true;
   }
 }

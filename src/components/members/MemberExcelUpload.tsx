@@ -20,7 +20,8 @@ import { TableIcon, FileSpreadsheet, Upload, Download, AlertCircle } from 'lucid
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
-import { AccountTypeService } from '@/lib/services/account-type.service';
+import { AccountTypeService, AccountType } from '@/lib/services/account-type.service';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface UploadResultItem {
@@ -41,39 +42,42 @@ interface UploadResults {
   total: number;
 }
 
-const MemberExcelUpload: React.FC = () => {
+const MemberExcelUpload = () => {
   const { toast } = useToast();
+  const { currentBranch, availableBranches } = useAuth();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [accountTypeId, setAccountTypeId] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResults, setUploadResults] = useState<UploadResults | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [accountTypes, setAccountTypes] = useState<any[]>([]);
-  const [isLoadingAccountTypes, setIsLoadingAccountTypes] = useState(false);
+  
+  const [accountTypes, setAccountTypes] = useState<AccountType[]>([]);
+  const [accountTypeId, setAccountTypeId] = useState<string>('');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('');
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch account types on component mount
   useEffect(() => {
-    const fetchAccountTypes = async () => {
-      setIsLoadingAccountTypes(true);
+    const loadAccountTypes = async () => {
       try {
         const response = await AccountTypeService.getAll();
         setAccountTypes(response.data);
       } catch (error) {
-        console.error('Error fetching account types:', error);
-        // Don't show error toast as account types are optional
-        // Instead, set empty account types list
-        setAccountTypes([]);
-      } finally {
-        setIsLoadingAccountTypes(false);
+        console.error('Error loading account types:', error);
       }
     };
     
-    fetchAccountTypes();
-  }, []);
+    loadAccountTypes();
+    
+    // Set current branch as default selection
+    if (currentBranch) {
+      setSelectedBranchId(currentBranch.id);
+    }
+  }, [currentBranch]);
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -138,7 +142,14 @@ const MemberExcelUpload: React.FC = () => {
       return;
     }
     
-    // Account type is now optional - backend will use a default
+    if (!selectedBranchId) {
+      toast({
+        title: 'No branch selected',
+        description: 'Please select a branch for the members.',
+        variant: 'destructive'
+      });
+      return;
+    }
     
     setIsUploading(true);
     setUploadProgress(0);
@@ -153,7 +164,11 @@ const MemberExcelUpload: React.FC = () => {
     }, 500);
     
     try {
-      const response = await MemberService.uploadExcel(selectedFile, parseInt(accountTypeId));
+      const response = await MemberService.uploadExcel(
+        selectedFile, 
+        accountTypeId ? parseInt(accountTypeId) : undefined,
+        selectedBranchId
+      );
       
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -195,6 +210,7 @@ const MemberExcelUpload: React.FC = () => {
     setUploadResults(null);
     setShowResults(false);
     setUploadError(null);
+    setSelectedBranchId(currentBranch?.id || '');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -279,6 +295,30 @@ const MemberExcelUpload: React.FC = () => {
                   )}
                   
                   <div className="space-y-2">
+                    <Label htmlFor="branch" className="flex items-center gap-2">
+                      Branch <span className="text-xs text-destructive">*</span>
+                    </Label>
+                    <Select 
+                      value={selectedBranchId} 
+                      onValueChange={setSelectedBranchId}
+                      disabled={isUploading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a branch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {availableBranches.map(branch => (
+                            <SelectItem key={branch.id} value={branch.id}>
+                              {branch.displayName || branch.name} ({branch.branchCode})
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label htmlFor="file">Excel File</Label>
                     <div className="grid w-full max-w-sm items-center gap-1.5">
                       <input
@@ -331,7 +371,7 @@ const MemberExcelUpload: React.FC = () => {
                   </Button>
                   <Button 
                     onClick={handleUpload} 
-                    disabled={!selectedFile || isUploading}
+                    disabled={!selectedFile || !selectedBranchId || isUploading}
                     className="gap-2"
                   >
                     <Upload className="h-4 w-4" />

@@ -2,12 +2,26 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { authService } from '@/lib/services/auth.service';
-import { userService } from '@/lib/services/user.service'; // Import userService for updateProfile functionality
+import { userService } from '@/lib/services/user.service'; 
+import { branchService, Branch } from '@/lib/services/branch.service';
 import { useRouter } from 'next/navigation';
-import axiosInstance, { setIsLoggingOut } from '@/lib/axios'; // Make sure axiosInstance is available if needed later
+import axiosInstance, { setIsLoggingOut } from '@/lib/axios'; 
 
-// Define available roles type
-export type UserRole = 'admin' | 'manager' | 'loan_officer' | 'accountant' | 'cashier' | 'it' | 'clerk' | 'loan_board' | 'board_director' | 'marketing_officer' | 'hr';
+
+export type UserRole = 'admin' | 'super_admin' | 'manager' | 'loan_officer' | 'accountant' | 'cashier' | 'it' | 'clerk' | 'loan_board' | 'board_director' | 'marketing_officer' | 'hr';
+
+// Simplified branch interface for user context - only includes essential fields
+interface UserBranch {
+  id: string;
+  name: string;
+  displayName: string;
+  branchCode: string;
+  region?: string;
+  branchType?: string;
+  status?: string;
+  isActive?: boolean;
+  isHeadOffice?: boolean;
+}
 
 interface User {
   id: string;
@@ -21,6 +35,8 @@ interface User {
   lastPasswordChangedAt?: string | null;
   passwordExpiresAt?: string | null;
   profilePicture?: string;
+  branchId?: string;
+  branch?: UserBranch; // Use simplified branch interface
 }
 
 interface UserData {
@@ -41,19 +57,24 @@ interface AuthError {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, branchId?: string) => Promise<any>; // Return the raw response to handle 2FA
   logout: () => void;
   isAuthenticated: boolean;
   error: AuthError | null;
   clearError: () => void;
   hasPermission: (requiredRoles: UserRole[]) => boolean;
   updateProfile: (data: Partial<UserData>) => Promise<void>;
+  setUserAfter2FA: (response: any) => void; // Add method for 2FA success
+  availableBranches: Branch[];
+  currentBranch: UserBranch | null; // Use UserBranch for current branch
+  switchBranch: (branchId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Role hierarchy - defines which roles can access what other roles' permissions
 const roleHierarchy: Record<UserRole, UserRole[]> = {
+  super_admin: ['super_admin', 'admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer', 'hr'],
   admin: ['admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer', 'hr'],
   manager: ['manager', 'loan_officer', 'accountant', 'cashier', 'clerk', 'hr'],
   loan_officer: ['loan_officer'],
@@ -74,6 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<AuthError | null>(null);
   const [lastActivity, setLastActivity] = useState<Date>(new Date());
+  const [availableBranches, setAvailableBranches] = useState<Branch[]>([]);
+  const [currentBranch, setCurrentBranch] = useState<UserBranch | null>(null);
   const router = useRouter();
 
   const clearError = () => setError(null);
@@ -146,6 +169,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
       setUser(storedUser);
       
+      // Set current branch if available in stored user data
+      if (storedUser.branch) {
+        setCurrentBranch(storedUser.branch);
+      }
+      
       // Check if password change is required
       if (storedUser.passwordChangeRequired) {
         console.log('User requires password change, redirecting...');
@@ -156,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
     }
     setLoading(false);
-  }, [router]); // Removed user from dependency array to prevent infinite loop
+  }, [router]); // Remove user from dependency array to prevent infinite loop
 
   // Session timeout checker
   useEffect(() => {
@@ -195,14 +223,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return requiredRoles.some(role => userRolePermissions.includes(role));
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, branchId?: string) => {
     try {
       setLoading(true);
       setError(null);
       console.log('AuthContext: Attempting login...');
-      const response = await authService.login(email, password);
+      const response = await authService.login(email, password, branchId);
       console.log('AuthContext: Login response:', response);
       
+      // Check if 2FA is required
+      if (response.status === 'requires_2fa') {
+        console.log('AuthContext: 2FA required');
+        setLoading(false); // Set loading to false for 2FA case
+        return response; // Return the response to handle 2FA flow in the login component
+      }
+      
+      // Normal login flow continues
       // Cast the response.user to ensure role is of type UserRole
       const user: User = {
         id: response.user.id,
@@ -210,28 +246,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastName: response.user.lastName,
         email: response.user.email,
         role: response.user.role as UserRole,
-        department: response.user.department,
-        status: response.user.status,
+        department: response.user.department || '',
+        status: response.user.status || 'active',
         passwordChangeRequired: response.user.passwordChangeRequired || false,
         lastPasswordChangedAt: (response.user as any).lastPasswordChangedAt || null,
         passwordExpiresAt: (response.user as any).passwordExpiresAt || null,
-        profilePicture: response.user.profilePicture
+        profilePicture: response.user.profilePicture,
+        branchId: response.user.branchId,
+        branch: response.user.branch
       };
       
-      // Debug password change requirement
-      console.log('Auth Login - User data:', response.user);
-      console.log('Auth Login - Password change required (from server)?', user.passwordChangeRequired);
-      console.log('Auth Login - Password expires at:', user.passwordExpiresAt);
-      console.log('Auth Login - Last password changed at:', user.lastPasswordChangedAt);
-      
-      // Additional check - if password dates missing, force password change
-      const missingPasswordDates = !user.lastPasswordChangedAt || !user.passwordExpiresAt;
-      if (missingPasswordDates) {
-        console.log('Frontend forcing password change due to missing password dates');
-        user.passwordChangeRequired = true;
-      }
+      console.log('Auth Login - Password change required:', user.passwordChangeRequired);
       
       setUser(user);
+      
+      // Set current branch if available
+      if (response.user.branch) {
+        setCurrentBranch(response.user.branch);
+      }
       
       // Ensure token is set in axios headers immediately
       if (response.token) {
@@ -240,17 +272,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Use timeout to ensure state is updated before redirection
       setTimeout(() => {
-        // Double-check missing password dates one more time
-        const missingDates = !user.lastPasswordChangedAt || !user.passwordExpiresAt;
-        
-        if (user.passwordChangeRequired || missingDates) {
-          console.log('Password change required, redirecting...');
-          router.push('/change-password');
-        } else {
-          console.log('No password change required, redirecting to dashboard...');
-          router.push('/dashboard');
+        if (user.passwordChangeRequired) {
+          console.log('Password change required, redirecting using direct navigation...');
+          // Use window.location for a hard redirect that can't be intercepted
+          window.location.href = '/change-password';
+          return; // Stop execution to prevent any other code from running
         }
       }, 100);
+      
+      return response; // Return the response for the login component
     } catch (err: any) {
       console.error('AuthContext: Login error:', err);
       const errorData = {
@@ -285,6 +315,94 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Function to set user state after successful 2FA verification
+  const setUserAfter2FA = useCallback((response: any) => {
+    console.log('AuthContext: Setting user after successful 2FA verification:', response);
+    
+    // Cast the response.user to ensure role is of type UserRole
+    const user: User = {
+      id: response.user.id,
+      firstName: response.user.firstName,
+      lastName: response.user.lastName,
+      email: response.user.email,
+      role: response.user.role as UserRole,
+      department: response.user.department || '',
+      status: response.user.status || 'active',
+      passwordChangeRequired: response.user.passwordChangeRequired || false,
+      lastPasswordChangedAt: (response.user as any).lastPasswordChangedAt || null,
+      passwordExpiresAt: (response.user as any).passwordExpiresAt || null,
+      profilePicture: response.user.profilePicture,
+      branchId: response.user.branchId,
+      branch: response.user.branch
+    };
+    
+    console.log('AuthContext: User set after 2FA:', user);
+    setUser(user);
+    
+    // Set current branch if available
+    if (response.user.branch) {
+      setCurrentBranch(response.user.branch);
+    }
+    
+    // Ensure token is set in axios headers immediately
+    if (response.token) {
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
+      console.log('AuthContext: Token set in axios headers after 2FA');
+    }
+  }, []);
+
+  // Function to load available branches
+  const loadBranches = useCallback(async () => {
+    try {
+      const branches = await branchService.getActiveBranches();
+      setAvailableBranches(branches);
+    } catch (error) {
+      console.error('Failed to load branches:', error);
+    }
+  }, []);
+
+  // Function to switch branch
+  const switchBranch = useCallback(async (branchId: string) => {
+    try {
+      setLoading(true);
+      const branch = await branchService.getBranchById(branchId);
+      
+      // Convert full Branch to UserBranch
+      const userBranch: UserBranch = {
+        id: branch.id,
+        name: branch.name,
+        displayName: branch.displayName,
+        branchCode: branch.branchCode,
+        region: branch.region,
+        branchType: branch.branchType,
+        status: branch.status,
+        isActive: branch.isActive,
+        isHeadOffice: branch.isHeadOffice
+      };
+      
+      setCurrentBranch(userBranch);
+      
+      // Update user's branch context
+      if (user) {
+        setUser({
+          ...user,
+          branchId,
+          branch: userBranch
+        });
+      }
+    } catch (error) {
+      console.error('Failed to switch branch:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Load branches on initialization
+  useEffect(() => {
+    loadBranches();
+  }, [loadBranches]);
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -295,9 +413,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       error,
       clearError,
       hasPermission,
-      updateProfile
+      updateProfile,
+      setUserAfter2FA,
+      availableBranches,
+      currentBranch,
+      switchBranch
     }}>
-      {loading ? <div>Loading...</div> : children} {/* Optional: Show loading indicator */}
+      {loading ? (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }

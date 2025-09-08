@@ -49,7 +49,7 @@ class BlogService {
    * Get all blogs for CMS management
    */
   async getAllBlogs(): Promise<Blog[]> {
-    const response = await apiCall('/blogs');
+    const response = await apiCall('/content/blogs');
     return response.data.blogs || [];
   }
 
@@ -57,7 +57,7 @@ class BlogService {
    * Get a single blog by ID
    */
   async getBlogById(id: string): Promise<Blog> {
-    const response = await apiCall(`/blogs/${id}`);
+    const response = await apiCall(`/content/blogs/${id}`);
     return response.data.blog;
   }
 
@@ -83,7 +83,7 @@ class BlogService {
       formData.append('featuredImage', featuredImage);
     }
 
-    const response = await apiCall('/blogs', {
+    const response = await apiCall('/content/blogs', {
       method: 'POST',
       data: formData,
       headers: {
@@ -116,7 +116,7 @@ class BlogService {
       formData.append('featuredImage', featuredImage);
     }
 
-    const response = await apiCall(`/blogs/${id}`, {
+    const response = await apiCall(`/content/blogs/${id}`, {
       method: 'PUT',
       data: formData,
       headers: {
@@ -131,7 +131,7 @@ class BlogService {
    * Delete a blog post
    */
   async deleteBlog(id: string): Promise<void> {
-    await apiCall(`/blogs/${id}`, {
+    await apiCall(`/content/blogs/${id}`, {
       method: 'DELETE'
     });
   }
@@ -140,7 +140,7 @@ class BlogService {
    * Get blog categories
    */
   async getCategories(): Promise<string[]> {
-    const response = await apiCall('/blogs/categories');
+    const response = await apiCall('/content/blogs/categories');
     return response.data.categories || [];
   }
 
@@ -148,7 +148,7 @@ class BlogService {
    * Get popular tags
    */
   async getTags(): Promise<string[]> {
-    const response = await apiCall('/blogs/tags');
+    const response = await apiCall('/content/blogs/tags');
     return response.data.tags || [];
   }
 
@@ -162,7 +162,7 @@ class BlogService {
     scheduled: number;
     totalViews: number;
   }> {
-    const response = await apiCall('/blogs/stats');
+    const response = await apiCall('/content/blogs/stats');
     return response.data.stats;
   }
 

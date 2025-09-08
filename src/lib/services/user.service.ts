@@ -2,6 +2,7 @@ import axiosInstance from '@/lib/axios';
 
 export type UserRole = 
   | "admin"
+  | "super_admin"
   | "manager"
   | "loan_officer"
   | "accountant"
@@ -34,6 +35,7 @@ export interface CreateUserData {
   department: string;
   role: UserRole;
   password: string;
+  branchId?: string;
 }
 
 export interface LockedAccount {
@@ -41,9 +43,17 @@ export interface LockedAccount {
   email: string;
   firstName: string;
   lastName: string;
-  lockoutUntil: string;  // ISO date string
+  phoneNumber?: string;
+  department?: string;
+  role?: UserRole;
+  lockoutUntil?: string;  // ISO date string
   failedLoginAttempts: number;
+  lockReason?: string;
+  lockedBy?: 'system' | 'admin';
+  unlockRequested?: boolean;
+  unlockRequestedAt?: string;
   status: string;
+  recentUnlockLogs?: any[];
 }
 
 export interface LoginResponse {
@@ -64,7 +74,7 @@ export interface LoginResponse {
 
 export const userService = {
   async getAllUsers(): Promise<UserData[]> {
-    const response = await axiosInstance.get('users');
+    const response = await axiosInstance.get('auth/users');
     // Check for different response formats
     if (response.data.data && response.data.data.users) {
       return response.data.data.users;
@@ -78,7 +88,7 @@ export const userService = {
 
   async createUser(userData: CreateUserData) {
     try {
-      const response = await axiosInstance.post('users/register', userData);
+      const response = await axiosInstance.post('auth/register', userData);
       return response.data;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to create user';
@@ -87,24 +97,24 @@ export const userService = {
   },
 
   async updateUser(id: string, userData: Partial<UserData>) {
-    const response = await axiosInstance.patch(`users/${id}`, userData);
+    const response = await axiosInstance.patch(`auth/users/${id}`, userData);
     return response.data;
   },
 
   async deleteUser(id: string) {
-    const response = await axiosInstance.delete(`users/${id}`);
+    const response = await axiosInstance.delete(`auth/users/${id}`);
     return response.data;
   },
 
   async toggleUserStatus(id: string, status: 'active' | 'inactive' | 'suspended') {
-    const response = await axiosInstance.patch(`users/${id}`, { status });
+    const response = await axiosInstance.patch(`auth/users/${id}`, { status });
     return response.data;
   },
 
   async getLockedAccounts(): Promise<LockedAccount[]> {
     try {
-      const response = await axiosInstance.get('users/locked-accounts');
-      return response.data.lockedAccounts;
+      const response = await axiosInstance.get('/auth/unlock/admin/locked-accounts');
+      return response.data.data.users || response.data.data.lockedAccounts || [];
     } catch (error: any) {
       console.error('Error fetching locked accounts:', error);
       const errorMessage = error.response?.data?.message || 
@@ -114,9 +124,11 @@ export const userService = {
     }
   },
 
-  async unlockAccount(id: string) {
+  async unlockAccount(id: string, reason?: string) {
     try {
-      const response = await axiosInstance.post(`users/${id}/unlock`);
+      const response = await axiosInstance.post(`/auth/unlock/admin/unlock-account/${id}`, {
+        reason: reason || 'Admin-initiated unlock'
+      });
       return response.data;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to unlock account';
@@ -127,12 +139,43 @@ export const userService = {
   async updateProfile(userData: Partial<UserData>) {
     try {
       const { id, ...dataWithoutId } = userData;
-      const response = await axiosInstance.patch('users/profile', dataWithoutId);
+      const response = await axiosInstance.patch('auth/profile', dataWithoutId);
       return response.data;
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 
                          error.response?.data?.error || 
                          'Failed to update profile';
+      throw new Error(errorMessage);
+    }
+  },
+
+  // Role assignment methods
+  async getUserRoles(userId: string) {
+    try {
+      const response = await axiosInstance.get(`auth/users/${userId}/roles`);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to get user roles';
+      throw new Error(errorMessage);
+    }
+  },
+
+  async assignRoleToUser(userId: string, roleId: string) {
+    try {
+      const response = await axiosInstance.post(`auth/users/${userId}/roles`, { roleId });
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to assign role to user';
+      throw new Error(errorMessage);
+    }
+  },
+
+  async removeRoleFromUser(userId: string, roleId: string) {
+    try {
+      const response = await axiosInstance.delete(`auth/users/${userId}/roles/${roleId}`);
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to remove role from user';
       throw new Error(errorMessage);
     }
   },

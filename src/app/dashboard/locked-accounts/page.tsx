@@ -37,20 +37,20 @@ function LockedAccountsPage() {
 
   const handleUnlock = async (id: string) => {
     try {
-      await userService.unlockAccount(id)
+      const result = await userService.unlockAccount(id, 'Admin-initiated unlock from dashboard');
       toast({
-        title: "Success",
-        description: "Account unlocked successfully",
-      })
-      fetchLockedAccounts() // Refresh the list
+        title: "Unlock Initiated",
+        description: "Account unlock process has been started. An OTP has been sent to the user's email.",
+      });
+      fetchLockedAccounts(); // Refresh the list
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to unlock account",
+        description: error.message || "Failed to initiate account unlock",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -82,4 +82,4 @@ function LockedAccountsPage() {
 }
 
 // Export the protected component
-export default withRoleProtection(LockedAccountsPage, ['admin']) 
+export default withRoleProtection(LockedAccountsPage, ['admin', 'super_admin']) 

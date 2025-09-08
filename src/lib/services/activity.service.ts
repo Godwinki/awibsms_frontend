@@ -43,7 +43,7 @@ class ActivityService {
       }
 
       const response = await axiosInstance.get(
-        `/activities?${queryParams.toString()}`
+        `/system/activities?${queryParams.toString()}`
       );
       
       console.log('Activity logs response:', response.data);
@@ -62,7 +62,7 @@ class ActivityService {
 
   async logActivity(data: ActivityLogData) {
     try {
-      const response = await axiosInstance.post('/activities', data);
+      const response = await axiosInstance.post('/system/activities', data);
       return response.data;
     } catch (error) {
       console.error('Failed to log activity:', error);

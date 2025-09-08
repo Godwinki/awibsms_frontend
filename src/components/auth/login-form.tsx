@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Eye, EyeOff, Shield, AlertCircle, CheckCircle2, XCircle, Loader2 } from "lucide-react"
@@ -11,9 +11,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/contexts/AuthContext'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
+import TwoFactorVerification from "./two-factor-verification"
+import { LoginResponse } from "@/lib/services/auth.service"
 
 export function LoginForm() {
-  const { login, error, clearError } = useAuth()
+  const { login, error, clearError, setUserAfter2FA } = useAuth()
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
@@ -26,23 +28,69 @@ export function LoginForm() {
   const [lockoutTime, setLockoutTime] = useState<string | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isPermanentlyLocked, setIsPermanentlyLocked] = useState(false);
+  
+  // 2FA states - combine into single state for better reliability
+  const [twoFactorState, setTwoFactorState] = useState<{
+    required: boolean;
+    data: {
+      userId: string;
+      email: string;
+      twoFactorMethod: string;
+    } | null;
+  }>({
+    required: false,
+    data: null
+  });
+  
+  // Ref to prevent multiple 2FA state updates
+  const twoFactorSet = useRef(false);
 
-  // Clear messages when inputs change
+  // Track component mounting/unmounting
   useEffect(() => {
-    if (email || password) {
+    // Restore 2FA state from sessionStorage if it exists
+    const storedTwoFactor = sessionStorage.getItem('twoFactorPending');
+    if (storedTwoFactor) {
+      const data = JSON.parse(storedTwoFactor);
+      setTwoFactorState({
+        required: true,
+        data
+      });
+      twoFactorSet.current = true;
+    }
+  }, []);
+
+  // Track 2FA state changes
+  useEffect(() => {
+    // Optional: Add any side effects when 2FA state changes
+  }, [twoFactorState]);
+
+  // Clear messages when inputs change - but don't reset 2FA state
+  useEffect(() => {
+    if ((email || password) && !twoFactorState.required) {
       clearError();
       setLocalError("");
     }
-  }, [email, password, clearError]);
+  }, [email, password, clearError, twoFactorState.required]);
 
-  // Check for session expiration message
+  // Check for session expiration message or password change success
   useEffect(() => {
+    if (!searchParams) return;
+    
     const message = searchParams.get('message');
+    const passwordChanged = searchParams.get('password_changed');
+    
     if (message === 'session-expired') {
       toast({
         title: "Session Expired",
         description: "Your session has expired. Please log in again.",
         variant: "destructive",
+      });
+    } else if (passwordChanged === 'true') {
+      toast({
+        title: "Password Changed Successfully",
+        description: "Your password has been updated. Please log in with your new credentials.",
+        variant: "default",
+        className: "bg-green-50 border-green-200",
       });
     }
   }, [searchParams, toast]);
@@ -102,26 +150,85 @@ export function LoginForm() {
     setLocalError("");
 
     try {
-      await login(email, password);
+      const response = await login(email, password);
       
-      // Show success toast
-      toast({
-        title: "Login Successful!",
-        description: "Welcome back! Redirecting to dashboard...",
-        variant: "default",
-      });
-      
-      // Set redirecting state and redirect after a short delay
-      setIsRedirecting(true);
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 1500);
-      
+      // Check if 2FA is required
+      if (response && response.status === 'requires_2fa') {
+        // Store 2FA data in sessionStorage to persist across re-renders
+        const twoFactorData = {
+          userId: response.userId || response.user.id,
+          email: response.user.email,
+          twoFactorMethod: response.twoFactorMethod || 'email'
+        };
+        
+        sessionStorage.setItem('twoFactorPending', JSON.stringify(twoFactorData));
+        
+        // Prevent multiple updates
+        if (!twoFactorSet.current) {
+          twoFactorSet.current = true;
+          
+          // Set 2FA state immediately
+          setTwoFactorState({
+            required: true,
+            data: twoFactorData
+          });
+        }
+        
+        toast({
+          title: "Two-Factor Authentication Required",
+          description: "Please enter the verification code sent to your email.",
+          variant: "default",
+        });
+        
+        // For 2FA, we don't set loading to false as we're transitioning to 2FA view
+        setIsLoading(false);
+        return; // Exit early to prevent further execution
+      } else {
+        // Normal login flow without 2FA
+        // Check if password change is required
+        if (response && response.user?.passwordChangeRequired) {
+          console.log('Password change required, redirecting to change password');
+          
+          // Store the response temporarily for after password change
+          sessionStorage.setItem('pendingUserData', JSON.stringify(response));
+          
+          toast({
+            title: "Password Change Required",
+            description: "You must change your password before accessing the dashboard.",
+            variant: "default",
+          });
+          
+          // Redirect to change password page
+          setIsRedirecting(true);
+          setTimeout(() => {
+            router.push('/change-password?reason=force');
+          }, 1500);
+          return;
+        }
+        
+        // Normal successful login
+        toast({
+          title: "Login Successful!",
+          description: "Welcome back! Redirecting to dashboard...",
+          variant: "default",
+        });
+        
+        // Set redirecting state and redirect after a short delay
+        setIsRedirecting(true);
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1500);
+      }
     } catch (err: any) {
+      // Check if it's a timeout error
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+      
       // Show error toast
       toast({
         title: "Login Failed",
-        description: err.message || "Failed to login. Please try again.",
+        description: isTimeout 
+          ? "Request timed out. Please check your connection and try again." 
+          : err.message || "Failed to login. Please try again.",
         variant: "destructive",
       });
       
@@ -134,10 +241,65 @@ export function LoginForm() {
       } else if (err.lockoutUntil) {
         setLockoutTime(err.lockoutUntil);
       }
-      setLocalError(err.message || "Failed to login. Please try again.");
+      
+      const errorMessage = isTimeout 
+        ? "Request timed out. Please check your connection and try again."
+        : err.message || "Failed to login. Please try again.";
+      
+      setLocalError(errorMessage);
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleVerificationSuccess = (response: LoginResponse) => {
+    console.log('2FA verification successful, setting user in AuthContext:', response);
+    
+    // Check if password change is required
+    if (response.user?.passwordChangeRequired) {
+      console.log('Password change required after 2FA, redirecting to change password');
+      
+      // Store the response temporarily for after password change
+      sessionStorage.setItem('pendingUserData', JSON.stringify(response));
+      sessionStorage.removeItem('twoFactorPending');
+      
+      toast({
+        title: "Password Change Required",
+        description: "You must change your password before accessing the dashboard.",
+        variant: "default",
+      });
+      
+      // Redirect to change password page
+      router.push('/change-password?reason=force');
+      return;
+    }
+    
+    // Set user in AuthContext after successful 2FA (no password change required)
+    setUserAfter2FA(response);
+    
+    sessionStorage.removeItem('twoFactorPending');
+    toast({
+      title: "Verification Successful",
+      description: "Welcome back! Redirecting to dashboard...",
+      variant: "default",
+    });
+    
+    // Set redirecting state and redirect after a short delay
+    setIsRedirecting(true);
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1500);
+  };
+  
+  const handleVerificationCancel = () => {
+    twoFactorSet.current = false;
+    sessionStorage.removeItem('twoFactorPending');
+    setTwoFactorState({
+      required: false,
+      data: null
+    });
+    setEmail("");
+    setPassword("");
   };
 
   const renderAlert = () => {
@@ -156,7 +318,7 @@ export function LoginForm() {
           </AlertTitle>
           <AlertDescription className="mt-1">
             {errorMessage}
-            {!isPermanentLock && error?.attemptsRemaining !== undefined && (
+            {!isPermanentLock && error?.attemptsRemaining !== undefined && error?.attemptsRemaining > 0 && (
               <p className="mt-1 font-medium">
                 Warning: {error.attemptsRemaining} attempts remaining before permanent lockout
               </p>
@@ -167,9 +329,19 @@ export function LoginForm() {
               </p>
             )}
             {isPermanentLock && (
-              <p className="mt-1 text-sm">
-                Your account has been locked for security reasons. Please contact an administrator to unlock your account.
-              </p>
+              <div className="mt-2 space-y-2">
+                <p className="text-sm">
+                  Your account has been locked for security reasons.
+                </p>
+                <div className="mt-3">
+                  <Link 
+                    href="/unlock" 
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Unlock Account
+                  </Link>
+                </div>
+              </div>
             )}
           </AlertDescription>
         </Alert>
@@ -189,6 +361,30 @@ export function LoginForm() {
     }
   }, []);
 
+  if (twoFactorState.required && twoFactorState.data) {
+    return (
+      <Card className="mx-auto max-w-sm">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-2">
+            <Shield className="h-12 w-12 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-bold">AWIB SACCO</CardTitle>
+          <CardDescription>
+            Two-Factor Authentication Required
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TwoFactorVerification 
+            userId={twoFactorState.data.userId}
+            email={twoFactorState.data.email}
+            onVerificationSuccess={handleVerificationSuccess}
+            onCancel={handleVerificationCancel}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
     <Card className="mx-auto max-w-sm">
       <CardHeader className="space-y-1 text-center">
@@ -219,10 +415,10 @@ export function LoginForm() {
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
               <Link
-                href="/forgot-password"
+                href="/unlock"
                 className="text-sm text-primary hover:underline"
               >
-                Forgot password?
+                Need help?
               </Link>
             </div>
             <div className="relative">
@@ -274,8 +470,8 @@ export function LoginForm() {
       <CardFooter className="flex flex-col">
         <div className="mt-2 text-center text-sm text-muted-foreground">
           Need help accessing your account?{" "}
-          <Link href="/forgot-password" className="font-medium text-primary hover:underline">
-            Contact Administrator
+          <Link href="/unlock" className="font-medium text-primary hover:underline">
+            Get Help
           </Link>
         </div>
       </CardFooter>

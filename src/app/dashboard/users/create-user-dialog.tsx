@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select"
 import { CreateUserData, UserRole } from "@/lib/services/user.service"
 import { useToast } from "@/components/ui/use-toast"
+import roleService, { Role } from "@/lib/services/role.service"
+import branchService, { Branch } from "@/lib/services/branch.service"
 
 interface CreateUserDialogProps {
   open: boolean
@@ -33,22 +35,13 @@ const departments = [
   "Board",
 ]
 
-const roles = [
-  { value: "admin", label: "Administrator" },
-  { value: "manager", label: "Manager" },
-  { value: "loan_officer", label: "Loan Officer" },
-  { value: "accountant", label: "Accountant" },
-  { value: "cashier", label: "Cashier" },
-  { value: "it", label: "IT" },
-  { value: "clerk", label: "Clerk" },
-  { value: "loan_board", label: "Loan Board" },
-  { value: "board_director", label: "Board Director" },
-  { value: "marketing_officer", label: "Marketing Officer" },
-]
-
 export function CreateUserDialog({ open, onOpenChange, onSubmit }: CreateUserDialogProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [roles, setRoles] = useState<Role[]>([])
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
+  const [loadingBranches, setLoadingBranches] = useState(false)
   const [formData, setFormData] = useState<CreateUserData>({
     firstName: "",
     lastName: "",
@@ -57,7 +50,40 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit }: CreateUserDia
     department: "",
     role: "clerk",
     password: "",
+    branchId: ""
   })
+
+  // Load roles and branches from database
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoadingRoles(true)
+        setLoadingBranches(true)
+        
+        const [rolesData, branchesData] = await Promise.all([
+          roleService.getRoles(),
+          branchService.getActiveBranches()
+        ])
+        
+        setRoles(Array.isArray(rolesData) ? rolesData : [])
+        setBranches(Array.isArray(branchesData) ? branchesData : [])
+      } catch (error) {
+        console.error('Error loading data:', error)
+        toast({
+          title: "Warning",
+          description: "Failed to load roles or branches from database",
+          variant: "destructive",
+        })
+      } finally {
+        setLoadingRoles(false)
+        setLoadingBranches(false)
+      }
+    }
+
+    if (open) {
+      loadData()
+    }
+  }, [open, toast])
 
   // Update the phone number validation for Tanzanian format
   const validatePhoneNumber = (value: string) => {
@@ -111,6 +137,7 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit }: CreateUserDia
         department: "",
         role: "clerk",
         password: "",
+        branchId: ""
       })
       onOpenChange(false)
     } catch (error: any) {
@@ -141,6 +168,11 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit }: CreateUserDia
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
+          <div className="text-sm text-muted-foreground mt-2">
+            <p>• The user will be required to change their password on first login</p>
+            <p>• Two-factor authentication (2FA) will be enabled automatically</p>
+            <p>• They will receive verification codes via email</p>
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -188,6 +220,30 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit }: CreateUserDia
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="branchId">Branch *</Label>
+            <Select
+              value={formData.branchId}
+              onValueChange={(value) => setFormData({ ...formData, branchId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {loadingBranches ? (
+                  <SelectItem value="loading" disabled>Loading branches...</SelectItem>
+                ) : branches.length > 0 ? (
+                  branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.displayName || branch.name} ({branch.branchCode})
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-branches" disabled>No branches available</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="department">Department</Label>
             <Select
               value={formData.department}
@@ -215,21 +271,28 @@ export function CreateUserDialog({ open, onOpenChange, onSubmit }: CreateUserDia
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.value} value={role.value}>
-                    {role.label}
-                  </SelectItem>
-                ))}
+                {loadingRoles ? (
+                  <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                ) : roles.length > 0 ? (
+                  roles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      {role.displayName}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-roles" disabled>No roles available</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Initial password</Label>
+            <Label htmlFor="password">Temporary password</Label>
             <Input
               id="password"
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              placeholder="User must change this on first login"
               required
             />
           </div>

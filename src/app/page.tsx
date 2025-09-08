@@ -1,27 +1,91 @@
+'use client'
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import Link from "next/link"
-import { Shield, Building2, Users2, BadgeCheck, ArrowRight } from "lucide-react"
+import { Shield, Building2, Users2, BadgeCheck, ArrowRight, Loader2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useCompanyInfo } from '@/hooks/useCompanyInfo'
+import OnboardingService from '@/lib/services/onboarding.service'
 import Image from "next/image"
 
 export default function Home() {
+  const router = useRouter();
+  const { company, displayName, logo } = useCompanyInfo();
+  const [systemStatus, setSystemStatus] = useState(null);
+  const [systemLoading, setSystemLoading] = useState(true);
+
+  useEffect(() => {
+    // Check system status without redirecting
+    const checkStatus = async () => {
+      try {
+        const status = await OnboardingService.getSystemStatus();
+        setSystemStatus(status);
+      } catch (error) {
+        console.error('Failed to check system status:', error);
+      } finally {
+        setSystemLoading(false);
+      }
+    };
+
+    checkStatus();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6">
         <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <span className="font-bold text-xl">AWIB SACCOS</span>
+          {logo ? (
+            <img 
+              src={logo} 
+              alt={displayName}
+              className="h-6 w-6 object-contain"
+            />
+          ) : (
+            <Shield className="h-6 w-6 text-primary" />
+          )}
+          <span className="font-bold text-xl">{displayName}</span>
         </div>
 
         <div className="ml-auto flex items-center gap-4">
           <ThemeToggle />
-          <Button asChild variant="default" size="sm">
-            <Link href="/login">Staff Portal <ArrowRight className="ml-2 h-4 w-4" /></Link>
-          </Button>
+          {systemLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Checking system...</span>
+            </div>
+          ) : systemStatus?.needsOnboarding ? (
+            <div className="flex items-center gap-2 text-sm text-amber-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>Setup required</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <BadgeCheck className="h-4 w-4" />
+              <span>System ready</span>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="flex-1">
+        {/* System Setup Alert */}
+        {!systemLoading && systemStatus?.needsOnboarding && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
+            <Alert className="border-amber-200 bg-amber-50 max-w-4xl mx-auto">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>System Setup Required:</strong> The SACCO system needs to be configured before use.{' '}
+                <Link href="/onboarding" className="font-medium underline hover:no-underline">
+                  Complete setup now
+                </Link>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
         {/* Hero Section */}
         <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
           {/* Background Image */}

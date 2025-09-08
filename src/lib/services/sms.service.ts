@@ -443,7 +443,7 @@ class SMSService {
       apiKey,
       apiSecret,
       senderId,
-      baseUrl: 'https://messaging.kilakona.co.tz/api/v1/vendor',
+      baseUrl: 'https://messaging.kilakona.co.tz/vendor',
       costPerSMS: 10, // Default cost in TSH
       isActive: true,
       features: ['delivery_reports', 'real_time_balance']

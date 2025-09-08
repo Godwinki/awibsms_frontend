@@ -37,7 +37,18 @@ class DepartmentService {
     while (retries <= this.maxRetries) {
       try {
         console.log('Fetching departments from API');
-        const response = await axios.get('/departments');
+        const response = await axios.get('/organization/departments');
+        
+        console.log('API Response:', response);
+        
+        // Check for data structure before assigning
+        if (!response.data || !response.data.data) {
+          console.error('Invalid response format:', response.data);
+          // Return empty array if data is missing
+          this.departmentsCache = [];
+          this.lastFetchTime = now;
+          return [];
+        }
         
         // Update cache
         this.departmentsCache = response.data.data;
@@ -86,25 +97,25 @@ class DepartmentService {
   }
 
   async createDepartment(data: Partial<Department>) {
-    const response = await axios.post('/departments', data);
+    const response = await axios.post('/organization/departments', data);
     // Invalidate cache
     this.departmentsCache = null;
     return response.data.data;
   }
 
   async updateDepartment(id: string, data: Partial<Department>) {
-    const response = await axios.patch(`/departments/${id}`, data);
+    const response = await axios.patch(`/organization/departments/${id}`, data);
     // Invalidate cache
     this.departmentsCache = null;
     return response.data.data;
   }
 
   async deleteDepartment(id: string) {
-    const response = await axios.delete(`/departments/${id}`);
+    const response = await axios.delete(`/organization/departments/${id}`);
     // Invalidate cache
     this.departmentsCache = null;
     return response.data;
   }
 }
 
-export const departmentService = new DepartmentService(); 
+export const departmentService = new DepartmentService();

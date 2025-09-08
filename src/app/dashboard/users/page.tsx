@@ -10,6 +10,7 @@ import { createColumns } from './columns';
 import { CreateUserDialog } from './create-user-dialog';
 import { EditUserDialog } from './edit-user-dialog';
 import { DeleteUserDialog } from './delete-user-dialog';
+import { UserRolesDialog } from './user-roles-dialog';
 import { useToast } from '@/components/ui/use-toast';
 
 function UsersPage() {
@@ -19,6 +20,7 @@ function UsersPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRolesDialogOpen, setIsRolesDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -82,6 +84,10 @@ function UsersPage() {
     (user: UserData) => {
       setSelectedUser(user)
       setIsDeleteDialogOpen(true)
+    },
+    (user: UserData) => {
+      setSelectedUser(user)
+      setIsRolesDialogOpen(true)
     }
   )
 
@@ -120,10 +126,16 @@ function UsersPage() {
             onOpenChange={setIsDeleteDialogOpen}
             onConfirm={handleDeleteUser}
           />
+          <UserRolesDialog
+            user={selectedUser}
+            open={isRolesDialogOpen}
+            onOpenChange={setIsRolesDialogOpen}
+            onRolesUpdated={fetchUsers}
+          />
         </>
       )}
     </div>
   );
 }
 
-export default withRoleProtection(UsersPage, ['admin']); 
+export default withRoleProtection(UsersPage, ['admin', 'super_admin']); 

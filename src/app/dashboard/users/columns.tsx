@@ -3,16 +3,17 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { UserData } from "@/lib/services/user.service"
 import { Button } from "@/components/ui/button"
-import { Edit, Trash2 } from "lucide-react"
+import { Edit, Trash2, Shield } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface ActionsProps {
   user: UserData
   onEdit: (user: UserData) => void
   onDelete: (user: UserData) => void
+  onManageRoles: (user: UserData) => void
 }
 
-const Actions = ({ user, onEdit, onDelete }: ActionsProps) => {
+const Actions = ({ user, onEdit, onDelete, onManageRoles }: ActionsProps) => {
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -20,14 +21,25 @@ const Actions = ({ user, onEdit, onDelete }: ActionsProps) => {
         size="icon"
         onClick={() => onEdit(user)}
         className="hover:text-primary"
+        title="Edit user"
       >
         <Edit className="h-4 w-4" />
       </Button>
       <Button
         variant="ghost"
         size="icon"
+        onClick={() => onManageRoles(user)}
+        className="hover:text-blue-600"
+        title="Manage roles"
+      >
+        <Shield className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={() => onDelete(user)}
         className="hover:text-destructive"
+        title="Delete user"
       >
         <Trash2 className="h-4 w-4" />
       </Button>
@@ -37,7 +49,8 @@ const Actions = ({ user, onEdit, onDelete }: ActionsProps) => {
 
 export const createColumns = (
   onEdit: (user: UserData) => void,
-  onDelete: (user: UserData) => void
+  onDelete: (user: UserData) => void,
+  onManageRoles: (user: UserData) => void
 ): ColumnDef<UserData>[] => [
   {
     accessorKey: "firstName",
@@ -100,6 +113,7 @@ export const createColumns = (
           user={user}
           onEdit={onEdit}
           onDelete={onDelete}
+          onManageRoles={onManageRoles}
         />
       )
     },

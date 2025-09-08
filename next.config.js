@@ -51,6 +51,23 @@ const nextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/sounds/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, must-revalidate',
+          },
+          {
+            key: 'Content-Type',
+            value: 'audio/wav',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

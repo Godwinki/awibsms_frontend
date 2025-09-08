@@ -64,19 +64,19 @@ export const DEFAULT_INITIAL_PAYMENTS = {
 export const AccountService = {
   // Account Types
   getAccountTypes: () => 
-    axiosInstance.get<AccountType[]>('/accounts/account-types'),
+    axiosInstance.get<AccountType[]>('/accounting/account-types'),
   
   getAccountTypeById: (id: number) => 
-    axiosInstance.get<AccountType>(`/accounts/account-types/${id}`),
+    axiosInstance.get<AccountType>(`/accounting/account-types/${id}`),
   
   createAccountType: (data: Partial<AccountType>) => 
-    axiosInstance.post('/accounts/account-types', data),
+    axiosInstance.post('/accounting/account-types', data),
   
   updateAccountType: (id: number, data: Partial<AccountType>) => 
-    axiosInstance.put(`/accounts/account-types/${id}`, data),
+    axiosInstance.put(`/accounting/account-types/${id}`, data),
   
   deleteAccountType: (id: number) => 
-    axiosInstance.delete(`/accounts/account-types/${id}`),
+    axiosInstance.delete(`/accounting/account-types/${id}`),
   
   // Member Accounts
   getMemberAccounts: (memberId: number) => 

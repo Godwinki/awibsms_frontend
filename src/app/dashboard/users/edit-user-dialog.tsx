@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { UserData, UserRole } from "@/lib/services/user.service"
 import { useToast } from "@/components/ui/use-toast"
+import roleService, { Role } from "@/lib/services/role.service"
 
 const departments = [
   "Finance",
@@ -24,18 +25,6 @@ const departments = [
   "Loans",
   "Customer Service",
   "Administration",
-]
-
-const roles = [
-  { value: "clerk", label: "Clerk" },
-  { value: "loan_officer", label: "Loan Officer" },
-  { value: "accountant", label: "Accountant" },
-  { value: "manager", label: "Manager" },
-  { value: "it", label: "IT" },
-  { value: "hr", label: "HR" },
-  { value: "marketing_officer", label: "Marketing Officer" },
-  { value: "board_director", label: "Board Director" },
-  { value: "loan_board", label: "Loan Board" },
 ]
 
 const statuses = [
@@ -54,6 +43,8 @@ interface EditUserDialogProps {
 export function EditUserDialog({ user, open, onOpenChange, onSubmit }: EditUserDialogProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
   const [formData, setFormData] = useState<Partial<UserData>>({
     firstName: user.firstName,
     lastName: user.lastName,
@@ -76,6 +67,30 @@ export function EditUserDialog({ user, open, onOpenChange, onSubmit }: EditUserD
       status: user.status,
     })
   }, [user])
+
+  // Load roles from database
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        setLoadingRoles(true)
+        const rolesData = await roleService.getRoles()
+        setRoles(Array.isArray(rolesData) ? rolesData : [])
+      } catch (error) {
+        console.error('Error loading roles:', error)
+        toast({
+          title: "Warning",
+          description: "Failed to load roles from database",
+          variant: "destructive",
+        })
+      } finally {
+        setLoadingRoles(false)
+      }
+    }
+
+    if (open) {
+      loadRoles()
+    }
+  }, [open, toast])
 
   const validatePhoneNumber = (value: string) => {
     const phoneRegex = /^\+255[67845]\d{8}$/
@@ -194,11 +209,17 @@ export function EditUserDialog({ user, open, onOpenChange, onSubmit }: EditUserD
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.value} value={role.value}>
-                    {role.label}
-                  </SelectItem>
-                ))}
+                {loadingRoles ? (
+                  <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                ) : roles.length > 0 ? (
+                  roles.map((role) => (
+                    <SelectItem key={role.id} value={role.name}>
+                      {role.displayName}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-roles" disabled>No roles available</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

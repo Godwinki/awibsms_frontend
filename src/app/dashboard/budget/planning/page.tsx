@@ -94,7 +94,7 @@ export default function BudgetPlanningPage() {
         params.fiscalYear = fiscalYear;
       }
 
-      const response = await axios.get('/budget-categories', { params });
+      const response = await axios.get('/budget/categories', { params });
       const categories = response.data.data || [];
       setCategories(categories);
       

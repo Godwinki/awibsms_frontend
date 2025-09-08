@@ -145,7 +145,7 @@ export default function DocumentsPage() {
 
   const fetchDocuments = async () => {
     try {
-      const response = await apiClient.get('/public-documents/cms');
+      const response = await apiClient.get('/content/public-documents/cms');
       console.log('API Response:', response.data);
       
       // Ensure the response data is an array
@@ -220,7 +220,7 @@ export default function DocumentsPage() {
     formDataToSend.append('isActive', formData.isActive.toString());
 
     try {
-      await apiClient.post('/public-documents/upload', formDataToSend, {
+      await apiClient.post('/content/public-documents/upload', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -248,7 +248,7 @@ export default function DocumentsPage() {
     if (!editingDocument) return;
 
     try {
-      await apiClient.put(`/public-documents/${editingDocument.id}`, formData);
+      await apiClient.put(`/content/public-documents/${editingDocument.id}`, formData);
 
       toast({
         title: "Success",
@@ -269,7 +269,7 @@ export default function DocumentsPage() {
 
   const handleDownload = async (documentId: number, fileName: string) => {
     try {
-      const response = await apiClient.get(`/public-documents/download/${documentId}`, {
+      const response = await apiClient.get(`/content/public-documents/download/${documentId}`, {
         responseType: 'blob'
       });
 
@@ -296,7 +296,7 @@ export default function DocumentsPage() {
     if (!confirm('Are you sure you want to delete this document?')) return;
 
     try {
-      await apiClient.delete(`/public-documents/${documentId}`);
+      await apiClient.delete(`/content/public-documents/${documentId}`);
 
       toast({
         title: "Success",

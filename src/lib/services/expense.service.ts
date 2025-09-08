@@ -232,7 +232,7 @@ class ExpenseServiceClass {
    * Returns the relative path (baseURL already includes /api)
    */
   getExpensePdfUrl(id: string): string {
-    return `expenses/${id}/pdf`;
+    return `/expenses/${id}/pdf`;
   }
 }
 

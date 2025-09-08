@@ -80,38 +80,40 @@ export interface Member {
 export const MemberService = {
   // Get the next available account number
   getNextAccountNumber: () => {
-    return axiosInstance.get('members/next-account-number');
+    return axiosInstance.get('/members/next-account-number');
   },
   
   // Create a new member
-  create: (data: Partial<Member>) => axiosInstance.post('members', data),
+  create: (data: Partial<Member>) => axiosInstance.post('/members', data),
 
-  // Get all members
-  getAll: () => axiosInstance.get<Member[]>('members'),
+  // Read operations
+  getAll: () => axiosInstance.get<Member[]>('/members'),
 
-  // Get a member by ID
-  getById: (id: number | string) => axiosInstance.get<Member>(`members/${id}`),
+  getById: (id: number | string) => axiosInstance.get<Member>(`/members/${id}`),
 
-  // Update a member
-  update: (id: number | string, data: Partial<Member>) => axiosInstance.put(`members/${id}`, data),
+  update: (id: number | string, data: Partial<Member>) => axiosInstance.put(`/members/${id}`, data),
 
-  // Delete a member
-  delete: (id: number | string) => axiosInstance.delete(`members/${id}`),
+  delete: (id: number | string) => axiosInstance.delete(`/members/${id}`),
   
   // Excel upload functions
   
   // Download Excel template for member registration
   downloadTemplate: () => {
-    return axiosInstance.get('member-uploads/template', { responseType: 'blob' });
+    return axiosInstance.get('/members/uploads/template', { responseType: 'blob' });
   },
   
   // Upload Excel file with member data
-  uploadExcel: (file: File, accountTypeId: number) => {
+  uploadExcel: (file: File, accountTypeId?: number, branchId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('accountTypeId', accountTypeId.toString());
+    if (accountTypeId) {
+      formData.append('accountTypeId', accountTypeId.toString());
+    }
+    if (branchId) {
+      formData.append('branchId', branchId);
+    }
     
-    return axiosInstance.post('member-uploads/upload', formData, {
+    return axiosInstance.post('/members/uploads/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }

@@ -16,6 +16,7 @@ import {
   Database, 
   Shield, 
   Lock, 
+  Monitor,
   FileText, 
   BellRing, 
   Building2, 
@@ -35,12 +36,16 @@ import {
   Newspaper,
   Star,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Zap,
+  Building
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import { useAuth, UserRole } from '@/contexts/AuthContext'
+import { ShortcutTrigger } from '@/components/shortcuts/ShortcutTrigger'
+import { useCompanyInfo } from '@/hooks/useCompanyInfo'
 
 interface NavItem {
   title: string
@@ -64,35 +69,44 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCmsExpanded, setIsCmsExpanded] = useState(false)
   const pathname = usePathname()
-  const { hasPermission } = useAuth()
+  const { hasPermission, currentBranch, user } = useAuth()
+  const { displayName, logo } = useCompanyInfo()
+
+  // Use branch name if available, otherwise fall back to company name
+  const sidebarDisplayName = currentBranch?.displayName || currentBranch?.name || displayName
 
   const navItems: NavItems = [
     // Main Navigation
-    { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
-    { title: 'Members', icon: Users, href: '/dashboard/members', roles: ['admin', 'manager', 'loan_officer', 'clerk'] },
-    { title: 'Accounting', icon: Calculator, href: '/dashboard/accounting', roles: ['admin', 'manager', 'accountant'] },
-    { title: 'Loans', icon: CircleDollarSign, href: '/dashboard/loans', roles: ['admin', 'manager', 'loan_officer', 'loan_board'] },
-    { title: 'Expenses', icon: CreditCard, href: '/dashboard/expenses', roles: ['admin', 'manager', 'accountant', 'cashier', 'loan_officer','it', 'hr', 'clerk', 'board_director', 'marketing_officer','loan_board' ] },
-    { title: 'Budget', icon: Calculator, href: '/dashboard/budget', roles: ['admin', 'manager', 'accountant'] },
-    { title: 'Inventory & Assets', icon: Package, href: '/dashboard/inventory', roles: ['admin', 'manager', 'clerk'] },
-    { title: 'Leaves', icon: Clock, href: '/dashboard/leaves', roles: ['admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
-    { title: 'Salary & Wages', icon: Briefcase, href: '/dashboard/salary', roles: ['admin', 'accountant', 'cashier', 'manager'] },
+    { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['admin', 'super_admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
+    { title: 'Members', icon: Users, href: '/dashboard/members', roles: ['admin', 'super_admin', 'manager', 'loan_officer', 'clerk'] },
+    { title: 'Accounting', icon: Calculator, href: '/dashboard/accounting', roles: ['admin', 'super_admin', 'manager', 'accountant'] },
+    { title: 'Loans', icon: CircleDollarSign, href: '/dashboard/loans', roles: ['admin', 'super_admin', 'manager', 'loan_officer', 'loan_board'] },
+    { title: 'Expenses', icon: CreditCard, href: '/dashboard/expenses', roles: ['admin', 'super_admin', 'manager', 'accountant', 'cashier', 'loan_officer','it', 'hr', 'clerk', 'board_director', 'marketing_officer','loan_board' ] },
+    { title: 'Budget', icon: Calculator, href: '/dashboard/budget', roles: ['admin', 'super_admin', 'manager', 'accountant'] },
+    { title: 'Inventory & Assets', icon: Package, href: '/dashboard/inventory', roles: ['admin', 'super_admin', 'manager', 'clerk'] },
+    { title: 'Leaves', icon: Clock, href: '/dashboard/leaves', roles: ['admin', 'super_admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
+    { title: 'Salary & Wages', icon: Briefcase, href: '/dashboard/salary', roles: ['admin', 'super_admin', 'accountant', 'cashier', 'manager'] },
     
     // Admin Controls (Only visible to admin and specific roles)
     { type: 'separator', title: 'Admin Controls' },
-    { title: 'Settings', icon: Settings, href: '/dashboard/settings', roles: ['admin'] },
-    { title: 'Reports', icon: PieChart, href: '/dashboard/reports', roles: ['admin', 'manager', 'accountant'] },
-    { title: 'Users', icon: UserCog, href: '/dashboard/users', roles: ['admin'] },
-    { title: 'Locked Accounts', icon: Lock, href: '/dashboard/locked-accounts', roles: ['admin'] },
-    { title: 'Audit Logs', icon: FileText, href: '/dashboard/audit-logs', roles: ['admin', 'it'] },
-    { title: 'Notifications', icon: Send, href: '/dashboard/notifications', roles: ['admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it',] },
-    { title: 'Departments', icon: Building2, href: '/dashboard/departments', roles: ['admin'] },
-    { title: 'Roles & Permissions', icon: Briefcase, href: '/dashboard/roles', roles: ['admin'] },
+    { title: 'Company Profile', icon: Building2, href: '/dashboard/company', roles: ['admin', 'super_admin', 'manager'] },
+    { title: 'Branches', icon: Building, href: '/dashboard/branches', roles: ['admin', 'super_admin', 'manager'] },
+    { title: 'Settings', icon: Settings, href: '/dashboard/settings', roles: ['admin', 'super_admin'] },
+    { title: 'Reports', icon: PieChart, href: '/dashboard/reports', roles: ['admin', 'super_admin', 'manager', 'accountant'] },
+    { title: 'Users', icon: UserCog, href: '/dashboard/users', roles: ['admin', 'super_admin'] },
+    { title: 'Locked Accounts', icon: Lock, href: '/dashboard/locked-accounts', roles: ['admin', 'super_admin'] },
+    { title: 'Active Sessions', icon: Monitor, href: '/dashboard/sessions', roles: ['admin', 'super_admin', 'it'] },
+    { title: 'Super Admin Management', icon: Shield, href: '/dashboard/super-admin', roles: ['super_admin'] },
+    { title: 'Audit Logs', icon: FileText, href: '/dashboard/audit-logs', roles: ['admin', 'super_admin', 'it'] },
+    { title: 'Notifications', icon: Send, href: '/dashboard/notifications', roles: ['admin', 'super_admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it',] },
+    { title: 'Departments', icon: Building2, href: '/dashboard/departments', roles: ['admin', 'super_admin'] },
+    { title: 'Roles & Permissions', icon: Shield, href: '/dashboard/roles', roles: ['admin', 'super_admin'] },
+    { title: 'Shortcuts', icon: Zap, href: '/dashboard/shortcuts', roles: ['admin', 'super_admin'] },
     
     // Communications
     { type: 'separator', title: 'Communications' },
-    { title: 'Email Center', icon: Mail, href: '/dashboard/notifications/mail', roles: ['admin', 'manager', 'marketing_officer', 'cashier', 'loan_officer', 'accountant', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
-    { title: 'SMS Messaging', icon: MessageSquare, href: '/dashboard/notifications/sms', roles: ['admin', 'manager', 'marketing_officer', 'cashier', 'loan_officer', 'accountant', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
+    { title: 'Email Center', icon: Mail, href: '/dashboard/notifications/mail', roles: ['admin', 'super_admin', 'manager', 'marketing_officer', 'cashier', 'loan_officer', 'accountant', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
+    { title: 'SMS Communications', icon: MessageSquare, href: '/dashboard/communications', roles: ['admin', 'super_admin', 'manager', 'marketing_officer', 'cashier', 'loan_officer', 'accountant', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
     
     
     // Content Management System1`  q1  ``````````````````````````````````````````````````
@@ -100,9 +114,9 @@ export function Sidebar() {
     
     // System
     { type: 'separator', title: 'System' },
-    { title: 'Backup & Restore', icon: Database, href: '/dashboard/backup', roles: ['admin', 'it'] },
-    { title: 'Help & Support', icon: HelpCircle, href: '/dashboard/support', roles: ['admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
-    { title: 'System Alerts', icon: AlertTriangle, href: '/dashboard/alerts', roles: ['admin', 'it'] },
+    { title: 'Backup & Restore', icon: Database, href: '/dashboard/backup', roles: ['admin', 'super_admin', 'it'] },
+    { title: 'Help & Support', icon: HelpCircle, href: '/dashboard/support', roles: ['admin', 'super_admin', 'manager', 'loan_officer', 'accountant', 'cashier', 'it', 'clerk', 'loan_board', 'board_director', 'marketing_officer'] },
+    { title: 'System Alerts', icon: AlertTriangle, href: '/dashboard/alerts', roles: ['admin', 'super_admin', 'it'] },
   ]
 
   // Filter nav items based on user role
@@ -124,11 +138,19 @@ export function Sidebar() {
       }`}
     >
       <div className="flex items-center p-4 gap-2">
-        <Shield className="h-6 w-6 text-primary flex-shrink-0" />
+        {logo ? (
+          <img 
+            src={logo} 
+            alt={sidebarDisplayName}
+            className="h-6 w-6 flex-shrink-0 object-contain"
+          />
+        ) : (
+          <Shield className="h-6 w-6 text-primary flex-shrink-0" />
+        )}
         <span className={`font-bold text-xl whitespace-nowrap transition-all duration-300 ${
           isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
         }`}>
-          WealthGuard
+          {sidebarDisplayName}
         </span>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -161,7 +183,7 @@ export function Sidebar() {
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all w-full text-left ${
                           isCollapsed ? "justify-center group-hover:justify-start" : ""
                         } ${
-                          pathname.startsWith('/dashboard/cms') 
+                          (pathname && pathname.startsWith('/dashboard/cms'))
                             ? "bg-primary/10 text-primary" 
                             : "hover:bg-accent"
                         }`}
@@ -296,13 +318,21 @@ export function Sidebar() {
         </nav>
       </div>
 
+      {/* Quick Actions Trigger */}
+      <div className={`p-4 border-t ${isCollapsed ? "px-2" : ""}`}>
+        <ShortcutTrigger 
+          variant={isCollapsed ? "minimal" : "button"}
+          className={`w-full ${isCollapsed ? "justify-center" : ""}`}
+        />
+      </div>
+
       <div className={`p-4 border-t text-sm text-muted-foreground ${
         isCollapsed ? "text-center group-hover:text-left" : ""
       }`}>
         <span className={`transition-all duration-300 ${
           isCollapsed ? "opacity-0 group-hover:opacity-100" : "opacity-100"
         }`}>
-          WealthGuard v1.0.0
+          {sidebarDisplayName} v1.0.0
         </span>
       </div>
     </div>

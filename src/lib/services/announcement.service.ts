@@ -67,7 +67,7 @@ class AnnouncementService {
       }
     });
 
-    const response = await axiosInstance.get(`/announcements?${params.toString()}`);
+    const response = await axiosInstance.get(`/content/announcements?${params.toString()}`);
     return response.data;
   }
 
@@ -87,13 +87,13 @@ class AnnouncementService {
       }
     });
 
-    const response = await axiosInstance.get(`/announcements/public?${params.toString()}`);
+    const response = await axiosInstance.get(`/content/announcements/public?${params.toString()}`);
     return response.data;
   }
 
   // Get single announcement
   async getAnnouncement(id: number): Promise<Announcement> {
-    const response = await axiosInstance.get(`/announcements/${id}`);
+    const response = await axiosInstance.get(`/content/announcements/${id}`);
     return response.data.announcement;
   }
 
@@ -117,7 +117,7 @@ class AnnouncementService {
       formData.append('banner', banner);
     }
 
-    const response = await axiosInstance.post('/announcements', formData, {
+    const response = await axiosInstance.post('/content/announcements', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -145,7 +145,7 @@ class AnnouncementService {
       formData.append('banner', banner);
     }
 
-    const response = await axiosInstance.put(`/announcements/${id}`, formData, {
+    const response = await axiosInstance.put(`/content/announcements/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -155,30 +155,30 @@ class AnnouncementService {
 
   // Delete announcement
   async deleteAnnouncement(id: number): Promise<void> {
-    await axiosInstance.delete(`/announcements/${id}`);
+    await axiosInstance.delete(`/content/announcements/${id}`);
   }
 
   // Publish announcement
   async publishAnnouncement(id: number): Promise<Announcement> {
-    const response = await axiosInstance.patch(`/announcements/${id}/publish`);
+    const response = await axiosInstance.patch(`/content/announcements/${id}/publish`);
     return response.data.announcement;
   }
 
   // Get announcement categories
   async getCategories(): Promise<{ value: string; label: string }[]> {
-    const response = await axiosInstance.get('/announcements/categories');
+    const response = await axiosInstance.get('/content/announcements/categories');
     return response.data.categories;
   }
 
   // Get target audiences
   async getTargetAudiences(): Promise<{ value: string; label: string }[]> {
-    const response = await axiosInstance.get('/announcements/audiences');
+    const response = await axiosInstance.get('/content/announcements/audiences');
     return response.data.audiences;
   }
 
   // Download banner
   async downloadBanner(id: number): Promise<Blob> {
-    const response = await axiosInstance.get(`/announcements/${id}/banner`, {
+    const response = await axiosInstance.get(`/content/announcements/${id}/banner`, {
       responseType: 'blob',
     });
     return response.data;

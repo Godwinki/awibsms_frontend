@@ -23,7 +23,7 @@ export const setIsLoggingOut = (value: boolean) => {
 // Create axios instance with default configuration
 const apiClient = axios.create({
   baseURL: baseURL,
-  timeout: 10000,
+  timeout: 30000, // Increased to 30 seconds
   headers: {
     'Content-Type': 'application/json'
   }
@@ -32,6 +32,11 @@ const apiClient = axios.create({
 // Automatically add auth token to requests
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Skip auth header if explicitly requested (for 2FA verification)
+    if ((config as any).skipAuth) {
+      return config;
+    }
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers = config.headers || {};

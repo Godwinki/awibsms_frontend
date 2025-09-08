@@ -56,10 +56,17 @@ export function Header() {
     try {
       const count = await notificationService.getUnreadCount();
       // Play sound if count increased (and not initial load)
-      if (previousCount !== 0 && count > previousCount && notificationSound.current) {
-        notificationSound.current.play().catch(err => {
-          console.warn("Could not play notification sound:", err);
-        });
+      if (previousCount !== 0 && count > previousCount) {
+        // Alternative method: Create fresh audio element for each play
+        try {
+          const audio = new Audio('/sounds/notification.wav');
+          audio.volume = 0.5;
+          audio.play().catch(err => {
+            console.warn("Could not play notification sound:", err);
+          });
+        } catch (error) {
+          console.warn("Could not create audio element:", error);
+        }
       }
       setPreviousCount(unreadCount);
       setUnreadCount(count);
@@ -149,8 +156,25 @@ export function Header() {
   };
   
   useEffect(() => {
-    // Initialize audio element
-    notificationSound.current = new Audio('/sounds/notification.wav');
+    // Initialize audio element with better error handling
+    try {
+      notificationSound.current = new Audio();
+      notificationSound.current.preload = 'auto';
+      
+      // Set the source and handle loading
+      const loadAudio = async () => {
+        try {
+          notificationSound.current!.src = '/sounds/notification.wav';
+          await notificationSound.current!.load();
+        } catch (error) {
+          console.warn('Could not load notification sound:', error);
+        }
+      };
+      
+      loadAudio();
+    } catch (error) {
+      console.warn('Could not initialize audio element:', error);
+    }
     
     fetchUnreadCount();
     
